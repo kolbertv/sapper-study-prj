@@ -1,6 +1,6 @@
 <script context="module">
   export function preload(page) {
-    console.log(page);
+    // console.log(page);
 
     return this.fetch("https://svelte-course-123.firebaseio.com/meetups.json")
       .then(res => {
@@ -39,6 +39,8 @@
   import LoadingSpinner from "../components/UI/LoadingSpinner.svelte";
 
   export let fetchedMeetups;
+
+  let loadedMeetups = [];
   let editedId;
   let editMode;
   let isLoading;
@@ -49,21 +51,23 @@
   let unsubscribe;
 
   $: filteredMeetups = favsOnly
-    ? fetchedMeetups.filter(m => m.isFavorite)
-    : fetchedMeetups;
+    ? loadedMeetups.filter(m => m.isFavorite)
+    : loadedMeetups;
 
   onMount(() => {
     // unsubscribe = meetups.subscribe(items => (fetchedMeetups = items));
     // isLoading = true;
-
+    unsubscribe = meetups.subscribe(items=>{
+      loadedMeetups = items;
+    })
     meetups.setMeetups(fetchedMeetups);
   });
 
-  // onDestroy(() => {
-  //   if (unsubscribe) {
-  //     unsubscribe();
-  //   }
-  // });
+  onDestroy(() => {
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  });
 
   function setFilter(event) {
     favsOnly = event.detail === 1;
@@ -82,6 +86,10 @@
   function startEdit(event) {
     editMode = "edit";
     editedId = event.detail;
+  }
+
+  function startAdd() {
+    editMode = "edit";
   }
 </script>
 
@@ -122,7 +130,7 @@
 {:else}
   <section id="meetups-controls">
     <MeetupFilter on:select={setFilter} />
-    <Button on:click={() => dispatch('add')}>New meetup</Button>
+    <Button on:click={startAdd}>New meetup</Button>
   </section>
   {#if filteredMeetups.length === 0}
     <p id="no-meetups">No meetups found, you can start adding some</p>
@@ -138,8 +146,7 @@
         email={meetup.contactEmail}
         address={meetup.address}
         isFav={meetup.isFavorite}
-        on:showdetails
-        on:edit />
+        on:edit={startEdit} />
     {/each}
 
   </section>

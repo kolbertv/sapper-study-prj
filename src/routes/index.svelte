@@ -1,31 +1,8 @@
-<script>
-  import { createEventDispatcher, onMount, onDestroy } from "svelte";
+<script context="module">
+  export function preload(page) {
+    console.log(page);
 
-  import meetups from "../meetups-store.js";
-  import MeetupItem from "../components/Meetup/MeetupItem.svelte";
-  import MeetupFilter from "../components/Meetup/MeetupFilter.svelte";
-  import Button from "../components/UI/Button.svelte";
-  import EditMeetup from "../components/Meetup/EditMeetup.svelte";
-  import LoadingSpinner from "../components/UI/LoadingSpinner.svelte";
-
-  let fetchedMeetups = [];
-  let editedId;
-  let editMode;
-  let isLoading;
-
-  const dispatch = createEventDispatcher();
-
-  let favsOnly = false;
-  let unsubscribe;
-
-  $: filteredMeetups = favsOnly
-    ? fetchedMeetups.filter(m => m.isFavorite)
-    : fetchedMeetups;
-
-  onMount(() => {
-    unsubscribe = meetups.subscribe(items => (fetchedMeetups = items));
-    isLoading = true;
-    fetch("https://svelte-course-123.firebaseio.com/meetups.json")
+    return this.fetch("https://svelte-course-123.firebaseio.com/meetups.json")
       .then(res => {
         if (!res.ok) {
           throw new Error("failed");
@@ -40,20 +17,53 @@
             id: key
           });
         }
-        isLoading = false;
-        meetups.setMeetups(loadedMeetups.reverse());
+        // isLoading = false;
+        return { fetchedMeetups: loadedMeetups.reverse() };
       })
       .catch(err => {
-        isLoading = false;
+        // isLoading = false;
         console.log(err);
+        this.error(500, "Could not fetch meetups!");
       });
+  }
+</script>
+
+<script>
+  import { createEventDispatcher, onMount, onDestroy } from "svelte";
+
+  import meetups from "../meetups-store.js";
+  import MeetupItem from "../components/Meetup/MeetupItem.svelte";
+  import MeetupFilter from "../components/Meetup/MeetupFilter.svelte";
+  import Button from "../components/UI/Button.svelte";
+  import EditMeetup from "../components/Meetup/EditMeetup.svelte";
+  import LoadingSpinner from "../components/UI/LoadingSpinner.svelte";
+
+  export let fetchedMeetups;
+  let editedId;
+  let editMode;
+  let isLoading;
+
+  const dispatch = createEventDispatcher();
+
+  let favsOnly = false;
+  let unsubscribe;
+
+  $: filteredMeetups = favsOnly
+    ? fetchedMeetups.filter(m => m.isFavorite)
+    : fetchedMeetups;
+
+  onMount(() => {
+    // unsubscribe = meetups.subscribe(items => (fetchedMeetups = items));
+    // isLoading = true;
+
+    meetups.setMeetups(fetchedMeetups);
   });
 
-  onDestroy(() => {
-    if (unsubscribe) {
-      unsubscribe();
-    }
-  });
+  // onDestroy(() => {
+  //   if (unsubscribe) {
+  //     unsubscribe();
+  //   }
+  // });
 
   function setFilter(event) {
     favsOnly = event.detail === 1;
